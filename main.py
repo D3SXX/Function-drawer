@@ -5,22 +5,51 @@ import numpy as np
 
 def autoscale(y, stdscr):
     global x
+    global y_list
+    if len(y_list) <= 1:
+        for i in range(0,361):
+            if select == "Sin":
+                radian = math.radians(i)
+                y_list.append(math.sin(radian))
+            elif select == "Cos":
+                radian = math.radians(i)
+                y_list.append(math.cos(radian))
+            elif select == "Tan":
+                radian = math.radians(i)
+                y_list.append(math.tan(radian))
     # Scale y to fit within the screen bounds
     screen_height, screen_width = stdscr.getmaxyx()
-    scaled_y = int(screen_height*0.5 - y * screen_height*0.42)
+    if select == "Sin" or select == "Cos":
+        max_screen = screen_height-2
+        min_screen = 1
+        max_value = max(y_list)
+        min_value = min(y_list)
+    elif select == "Tan":
+        max_screen = screen_width-2
+        min_screen = 1
+        max_value = max(y_list)
+        min_value = min(y_list)
+        if x >= screen_height-1:
+            x = 0
+            stdscr.clear()
+    scaled_y = (y - min_value) * (max_screen - min_screen) / (max_value - min_value) + min_screen
     if x >= screen_width-1:
         x = 0
         stdscr.clear()
     return scaled_y,x
 
-def draw_equation(stdscr, y,radian,select):
-    scaled_y,x = autoscale(y,stdscr)
+def draw_equation(stdscr, y, radian, select):
+    scaled_y, x = autoscale(y, stdscr)
     info = f"{select}({math.degrees(radian)}) = {y}"
     stdscr.addstr(0, 0, info)
-    stdscr.addch(scaled_y, x, '•')
+    if select == "Sin" or select == "Cos":
+        stdscr.addch(int(scaled_y), x, '•')
+    elif select == "Tan":
+        stdscr.addch(x, int(scaled_y), '•')
 
 def calc_equation(stdscr,select):
-    global x
+    global x, y_list
+    y_list = [1]
     screen_height, screen_width = stdscr.getmaxyx()
     step = max(0.1, min(180 // screen_height, 10))
     x = 0
@@ -44,6 +73,15 @@ def calc_equation(stdscr,select):
                 x += 1
                 stdscr.refresh()
                 curses.napms(delay)
+        elif select == "Tan":
+            for i in range(0,361,step):
+                stdscr.addstr(screen_height-1, 0, f"height: {screen_height} width: {screen_width} step: {step}")
+                radian = math.radians(i)
+                y = math.tan(radian)
+                draw_equation(stdscr,y,radian,select)
+                x += 1
+                stdscr.refresh()
+                curses.napms(delay)
         elif select == "lissajous":
             A = 1.0  
             B = 2.0 
@@ -63,12 +101,12 @@ def calc_equation(stdscr,select):
 
 
 def main(stdscr):
-
+    global select
     def select_menu():
         pos_y = 1
         pos_x = 0
         while True:
-            functions = ["Sin","Cos","lissajous","Exit"]
+            functions = ["Sin","Cos","Tan","lissajous","Exit"]
             stdscr.clear()
             height, width = stdscr.getmaxyx()
             debug_msg_1 = f"width: {width} height: {height} pos_x: {pos_x} pos_y {pos_y} {functions[pos_y-1]}"
@@ -105,6 +143,7 @@ def main(stdscr):
         curses.curs_set(0)
         stdscr.clear()
         stdscr.refresh()
+        #select = "Tan"
         calc_equation(stdscr,select)
         # Refresh the screen to display the dot
         stdscr.refresh()
